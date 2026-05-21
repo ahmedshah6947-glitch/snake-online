@@ -12,16 +12,16 @@ let gameState = null;
 
 let myId = null;
 
-let controlMode = "mouse";
-
 let myAngle = 0;
+
+let controlMode = "mouse";
 
 socket.on("connect", () => {
 
     myId = socket.id;
 });
 
-// PLAY BUTTONS
+// CONTROL SELECTION
 
 document.getElementById("mouseBtn").onclick = () => {
 
@@ -89,13 +89,15 @@ document.addEventListener("keydown", (e) => {
     }
 });
 
-// SEND MOVEMENT LESS OFTEN
+// SEND MOVEMENT
 
 setInterval(() => {
 
     socket.emit("move", myAngle);
 
 }, 1000 / 20);
+
+// DRAW FOOD
 
 function drawFood(food, camX, camY) {
 
@@ -105,18 +107,16 @@ function drawFood(food, camX, camY) {
 
         const y = f.y - camY;
 
-        // render only nearby
-
         if (
-            x < -50 ||
-            y < -50 ||
-            x > canvas.width + 50 ||
-            y > canvas.height + 50
+            x < -20 ||
+            y < -20 ||
+            x > canvas.width + 20 ||
+            y > canvas.height + 20
         ) continue;
 
-        ctx.beginPath();
-
         ctx.fillStyle = f.color;
+
+        ctx.beginPath();
 
         ctx.arc(x, y, 5, 0, Math.PI * 2);
 
@@ -124,35 +124,29 @@ function drawFood(food, camX, camY) {
     }
 }
 
+// DRAW PLAYERS
+
 function drawPlayers(players, camX, camY) {
 
     for (let id in players) {
 
         const p = players[id];
 
-        for (const s of p.snake) {
+        const x = p.x - camX;
 
-            const x = s.x - camX;
+        const y = p.y - camY;
 
-            const y = s.y - camY;
+        // PLAYER
 
-            if (
-                x < -50 ||
-                y < -50 ||
-                x > canvas.width + 50 ||
-                y > canvas.height + 50
-            ) continue;
+        ctx.fillStyle = p.color;
 
-            ctx.beginPath();
+        ctx.beginPath();
 
-            ctx.fillStyle = p.color;
+        ctx.arc(x, y, 18, 0, Math.PI * 2);
 
-            ctx.arc(x, y, 14, 0, Math.PI * 2);
+        ctx.fill();
 
-            ctx.fill();
-        }
-
-        // name
+        // NAME
 
         ctx.fillStyle = "white";
 
@@ -162,12 +156,25 @@ function drawPlayers(players, camX, camY) {
 
             p.name,
 
-            p.x - camX - 20,
+            x - 20,
 
-            p.y - camY - 25
+            y - 30
+        );
+
+        // SCORE
+
+        ctx.fillText(
+
+            p.score,
+
+            x - 5,
+
+            y + 40
         );
     }
 }
+
+// LEADERBOARD
 
 function drawLeaderboard(players) {
 
@@ -211,7 +218,7 @@ function drawLeaderboard(players) {
 
         ctx.fillText(
 
-            `${i + 1}. ${p.name} - ${p.score}`,
+            `${i+1}. ${p.name} - ${p.score}`,
 
             canvas.width - 200,
 
@@ -219,6 +226,8 @@ function drawLeaderboard(players) {
         );
     }
 }
+
+// GAME LOOP
 
 function gameLoop() {
 
@@ -247,11 +256,21 @@ function gameLoop() {
     const camY =
         me.y - canvas.height / 2;
 
-    drawFood(gameState.food, camX, camY);
+    drawFood(
+        gameState.food,
+        camX,
+        camY
+    );
 
-    drawPlayers(gameState.players, camX, camY);
+    drawPlayers(
+        gameState.players,
+        camX,
+        camY
+    );
 
-    drawLeaderboard(gameState.players);
+    drawLeaderboard(
+        gameState.players
+    );
 }
 
 gameLoop();

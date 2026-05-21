@@ -14,13 +14,15 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, "../client")));
 
-const WORLD_SIZE = 3000;
+const WORLD_SIZE = 2500;
 
-const FOOD_COUNT = 80;
+const FOOD_COUNT = 60;
 
 const players = {};
 
 const food = [];
+
+// FOOD
 
 function randomColor() {
 
@@ -51,9 +53,10 @@ function spawnFood() {
 }
 
 for (let i = 0; i < FOOD_COUNT; i++) {
-
     spawnFood();
 }
+
+// PLAYER
 
 function createPlayer(name) {
 
@@ -75,16 +78,11 @@ function createPlayer(name) {
 
         score: 0,
 
-        color: `hsl(${Math.random()*360},100%,50%)`,
-
-        snake: Array.from({ length: 15 }, (_, i) => ({
-
-            x: x - i * 10,
-
-            y
-        }))
+        color: `hsl(${Math.random()*360},100%,50%)`
     };
 }
+
+// SOCKETS
 
 io.on("connection", (socket) => {
 
@@ -108,19 +106,19 @@ io.on("connection", (socket) => {
     });
 });
 
+// GAME LOOP
+
 function updateGame() {
 
     for (let id in players) {
 
         const p = players[id];
 
-        // movement
-
         p.x += Math.cos(p.angle) * p.speed;
 
         p.y += Math.sin(p.angle) * p.speed;
 
-        // boundaries
+        // map boundaries
 
         p.x = Math.max(
             20,
@@ -132,23 +130,7 @@ function updateGame() {
             Math.min(WORLD_SIZE - 20, p.y)
         );
 
-        // snake body
-
-        p.snake.unshift({
-
-            x: p.x,
-
-            y: p.y
-        });
-
-        // LIMIT SNAKE SIZE
-
-        while (p.snake.length > 40) {
-
-            p.snake.pop();
-        }
-
-        // food collision
+        // food
 
         for (let i = food.length - 1; i >= 0; i--) {
 
@@ -173,11 +155,11 @@ function updateGame() {
     }
 }
 
-// LOWER SERVER LOAD
+// 20 TPS
 
 setInterval(updateGame, 1000 / 20);
 
-// LOWER NETWORK LOAD
+// LIGHT NETWORK UPDATE
 
 setInterval(() => {
 
@@ -194,5 +176,5 @@ const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
 
-    console.log("Server running");
+    console.log("Running on port " + PORT);
 });
