@@ -10,23 +10,19 @@ const app = express();
 
 const server = http.createServer(app);
 
-const io = new Server(server, {
-    cors: {
-        origin: "*"
-    }
-});
+const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, "../client")));
 
 const WORLD_SIZE = 3000;
 
+const FOOD_COUNT = 80;
+
 const players = {};
 
 const food = [];
 
-const FOOD_COUNT = 200;
-
-function randomFoodColor() {
+function randomColor() {
 
     const colors = [
         "#ff0000",
@@ -50,7 +46,7 @@ function spawnFood() {
 
         y: Math.random() * WORLD_SIZE,
 
-        color: randomFoodColor()
+        color: randomColor()
     });
 }
 
@@ -81,9 +77,9 @@ function createPlayer(name) {
 
         color: `hsl(${Math.random()*360},100%,50%)`,
 
-        snake: Array.from({ length: 20 }, (_, i) => ({
+        snake: Array.from({ length: 15 }, (_, i) => ({
 
-            x: x - i * 12,
+            x: x - i * 10,
 
             y
         }))
@@ -112,23 +108,31 @@ io.on("connection", (socket) => {
     });
 });
 
-function updatePlayers() {
+function updateGame() {
 
     for (let id in players) {
 
         const p = players[id];
 
+        // movement
+
         p.x += Math.cos(p.angle) * p.speed;
 
         p.y += Math.sin(p.angle) * p.speed;
 
-        // map collision
+        // boundaries
 
-        p.x = Math.max(20, Math.min(WORLD_SIZE - 20, p.x));
+        p.x = Math.max(
+            20,
+            Math.min(WORLD_SIZE - 20, p.x)
+        );
 
-        p.y = Math.max(20, Math.min(WORLD_SIZE - 20, p.y));
+        p.y = Math.max(
+            20,
+            Math.min(WORLD_SIZE - 20, p.y)
+        );
 
-        // snake body smoothing
+        // snake body
 
         p.snake.unshift({
 
@@ -137,7 +141,9 @@ function updatePlayers() {
             y: p.y
         });
 
-        while (p.snake.length > 20 + p.score) {
+        // LIMIT SNAKE SIZE
+
+        while (p.snake.length > 40) {
 
             p.snake.pop();
         }
@@ -167,10 +173,12 @@ function updatePlayers() {
     }
 }
 
-// physics tick
-setInterval(updatePlayers, 1000 / 30);
+// LOWER SERVER LOAD
 
-// network tick (LESS LAG)
+setInterval(updateGame, 1000 / 20);
+
+// LOWER NETWORK LOAD
+
 setInterval(() => {
 
     io.emit("gameState", {
@@ -180,7 +188,7 @@ setInterval(() => {
         food
     });
 
-}, 1000 / 20);
+}, 1000 / 15);
 
 const PORT = process.env.PORT || 3000;
 

@@ -8,46 +8,94 @@ canvas.width = innerWidth;
 
 canvas.height = innerHeight;
 
-const WORLD_SIZE = 3000;
-
 let gameState = null;
 
 let myId = null;
 
-let myName = "";
+let controlMode = "mouse";
+
+let myAngle = 0;
 
 socket.on("connect", () => {
 
     myId = socket.id;
 });
 
-document.getElementById("playBtn").onclick = () => {
+// PLAY BUTTONS
 
-    myName = document.getElementById("nameInput").value;
+document.getElementById("mouseBtn").onclick = () => {
 
-    if (!myName) return;
+    startGame("mouse");
+};
+
+document.getElementById("keyboardBtn").onclick = () => {
+
+    startGame("keyboard");
+};
+
+function startGame(mode) {
+
+    controlMode = mode;
+
+    const name =
+        document.getElementById("nameInput").value;
+
+    if (!name) return;
 
     document.getElementById("menu").style.display = "none";
 
-    socket.emit("newPlayer", myName);
-};
+    socket.emit("newPlayer", name);
+}
 
 socket.on("gameState", (state) => {
 
     gameState = state;
 });
 
+// MOUSE CONTROLS
+
 document.addEventListener("mousemove", (e) => {
 
-    const angle = Math.atan2(
+    if (controlMode !== "mouse") return;
+
+    myAngle = Math.atan2(
 
         e.clientY - canvas.height / 2,
 
         e.clientX - canvas.width / 2
     );
-
-    socket.emit("move", angle);
 });
+
+// KEYBOARD CONTROLS
+
+document.addEventListener("keydown", (e) => {
+
+    if (controlMode !== "keyboard") return;
+
+    if (e.key === "ArrowUp") {
+        myAngle = -Math.PI / 2;
+    }
+
+    if (e.key === "ArrowDown") {
+        myAngle = Math.PI / 2;
+    }
+
+    if (e.key === "ArrowLeft") {
+        myAngle = Math.PI;
+    }
+
+    if (e.key === "ArrowRight") {
+        myAngle = 0;
+    }
+});
+
+// SEND MOVEMENT LESS OFTEN
+
+setInterval(() => {
+
+    socket.emit("move", myAngle);
+
+}, 1000 / 20);
 
 function drawFood(food, camX, camY) {
 
@@ -57,7 +105,7 @@ function drawFood(food, camX, camY) {
 
         const y = f.y - camY;
 
-        // render only nearby food
+        // render only nearby
 
         if (
             x < -50 ||
@@ -70,7 +118,7 @@ function drawFood(food, camX, camY) {
 
         ctx.fillStyle = f.color;
 
-        ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
 
         ctx.fill();
     }
@@ -89,17 +137,17 @@ function drawPlayers(players, camX, camY) {
             const y = s.y - camY;
 
             if (
-                x < -100 ||
-                y < -100 ||
-                x > canvas.width + 100 ||
-                y > canvas.height + 100
+                x < -50 ||
+                y < -50 ||
+                x > canvas.width + 50 ||
+                y > canvas.height + 50
             ) continue;
 
             ctx.beginPath();
 
             ctx.fillStyle = p.color;
 
-            ctx.arc(x, y, 16, 0, Math.PI * 2);
+            ctx.arc(x, y, 14, 0, Math.PI * 2);
 
             ctx.fill();
         }
@@ -108,7 +156,7 @@ function drawPlayers(players, camX, camY) {
 
         ctx.fillStyle = "white";
 
-        ctx.font = "18px Arial";
+        ctx.font = "16px Arial";
 
         ctx.fillText(
 
@@ -116,7 +164,7 @@ function drawPlayers(players, camX, camY) {
 
             p.x - camX - 20,
 
-            p.y - camY - 30
+            p.y - camY - 25
         );
     }
 }
@@ -163,7 +211,7 @@ function drawLeaderboard(players) {
 
         ctx.fillText(
 
-            `${i+1}. ${p.name} - ${p.score}`,
+            `${i + 1}. ${p.name} - ${p.score}`,
 
             canvas.width - 200,
 
@@ -193,9 +241,11 @@ function gameLoop() {
 
     if (!me) return;
 
-    const camX = me.x - canvas.width / 2;
+    const camX =
+        me.x - canvas.width / 2;
 
-    const camY = me.y - canvas.height / 2;
+    const camY =
+        me.y - canvas.height / 2;
 
     drawFood(gameState.food, camX, camY);
 
