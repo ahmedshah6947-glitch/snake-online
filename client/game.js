@@ -1,4 +1,4 @@
-const socket = io();
+const socket = io(window.location.origin);
 
 const canvas = document.getElementById("game");
 
@@ -32,13 +32,6 @@ document.getElementById("playBtn").onclick = () => {
     socket.emit("newPlayer", myName);
 };
 
-document.getElementById("respawnBtn").onclick = () => {
-
-    document.getElementById("deathScreen").style.display = "none";
-
-    socket.emit("respawn", myName);
-};
-
 socket.on("gameState", (state) => {
 
     gameState = state;
@@ -56,52 +49,30 @@ document.addEventListener("mousemove", (e) => {
     socket.emit("move", angle);
 });
 
-function drawBorders(camX, camY) {
-
-    ctx.strokeStyle = "red";
-
-    ctx.lineWidth = 20;
-
-    ctx.strokeRect(
-
-        -camX,
-
-        -camY,
-
-        WORLD_SIZE,
-
-        WORLD_SIZE
-    );
-}
-
 function drawFood(food, camX, camY) {
 
     for (const f of food) {
+
+        const x = f.x - camX;
+
+        const y = f.y - camY;
+
+        // render only nearby food
+
+        if (
+            x < -50 ||
+            y < -50 ||
+            x > canvas.width + 50 ||
+            y > canvas.height + 50
+        ) continue;
 
         ctx.beginPath();
 
         ctx.fillStyle = f.color;
 
-        ctx.shadowBlur = 20;
-
-        ctx.shadowColor = f.color;
-
-        ctx.arc(
-
-            f.x - camX,
-
-            f.y - camY,
-
-            8,
-
-            0,
-
-            Math.PI * 2
-        );
+        ctx.arc(x, y, 6, 0, Math.PI * 2);
 
         ctx.fill();
-
-        ctx.shadowBlur = 0;
     }
 }
 
@@ -111,69 +82,27 @@ function drawPlayers(players, camX, camY) {
 
         const p = players[id];
 
-        for (let i = p.snake.length - 1; i >= 0; i--) {
+        for (const s of p.snake) {
 
-            const s = p.snake[i];
+            const x = s.x - camX;
+
+            const y = s.y - camY;
+
+            if (
+                x < -100 ||
+                y < -100 ||
+                x > canvas.width + 100 ||
+                y > canvas.height + 100
+            ) continue;
 
             ctx.beginPath();
 
             ctx.fillStyle = p.color;
 
-            ctx.shadowBlur = 15;
-
-            ctx.shadowColor = p.color;
-
-            ctx.arc(
-
-                s.x - camX,
-
-                s.y - camY,
-
-                18,
-
-                0,
-
-                Math.PI * 2
-            );
+            ctx.arc(x, y, 16, 0, Math.PI * 2);
 
             ctx.fill();
-
-            ctx.shadowBlur = 0;
         }
-
-        // eyes
-
-        ctx.fillStyle = "white";
-
-        ctx.beginPath();
-
-        ctx.arc(
-
-            p.x - camX - 5,
-
-            p.y - camY - 5,
-
-            4,
-
-            0,
-
-            Math.PI * 2
-        );
-
-        ctx.arc(
-
-            p.x - camX + 5,
-
-            p.y - camY - 5,
-
-            4,
-
-            0,
-
-            Math.PI * 2
-        );
-
-        ctx.fill();
 
         // name
 
@@ -210,12 +139,12 @@ function drawLeaderboard(players) {
 
         200,
 
-        180
+        170
     );
 
     ctx.fillStyle = "white";
 
-    ctx.font = "24px Arial";
+    ctx.font = "22px Arial";
 
     ctx.fillText(
 
@@ -234,7 +163,7 @@ function drawLeaderboard(players) {
 
         ctx.fillText(
 
-            `${i + 1}. ${p.name} - ${p.score}`,
+            `${i+1}. ${p.name} - ${p.score}`,
 
             canvas.width - 200,
 
@@ -267,8 +196,6 @@ function gameLoop() {
     const camX = me.x - canvas.width / 2;
 
     const camY = me.y - canvas.height / 2;
-
-    drawBorders(camX, camY);
 
     drawFood(gameState.food, camX, camY);
 
